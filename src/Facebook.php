@@ -36,7 +36,7 @@ class Facebook extends AbstractStrategy
         'info.first_name' => 'first_name',
         'info.last_name' => 'last_name',
         'info.location' => 'location.name',
-        'info.urls.website' => 'website'
+        'info.urls.website' => 'website',
     );
 
     /**
@@ -46,14 +46,14 @@ class Facebook extends AbstractStrategy
      */
     public function request()
     {
-        $url = 'https://www.facebook.com/dialog/oauth';
+        $url = 'https://www.facebook.com/2.8/dialog/oauth';
         $strategyKeys = array(
             'scope',
             'state',
             'response_type',
             'display',
             'auth_type',
-            'app_id' => 'client_id'
+            'app_id' => 'client_id',
         );
         $params = $this->addParams($strategyKeys);
         $params['redirect_uri'] = $this->callbackUrl();
@@ -71,10 +71,10 @@ class Facebook extends AbstractStrategy
             return $this->codeError();
         }
 
-        $url = 'https://graph.facebook.com/oauth/access_token';
+        $url = 'https://graph.facebook.com/v2.8/oauth/access_token';
         $params = $this->callbackParams();
         $response = $this->http->get($url, $params);
-        parse_str($response, $results);
+        $results = json_decode($response, true);
 
         if (empty($results['access_token'])) {
             return $this->tokenError($response);
@@ -88,7 +88,7 @@ class Facebook extends AbstractStrategy
         $response = $this->response($me);
         $response->credentials = array(
             'token' => $results['access_token'],
-            'expires' => isset($results['expires']) ? date('c', time() + $results['expires']) : null
+            'expires' => isset($results['expires']) ? date('c', time() + $results['expires']) : null,
         );
         $response->info['image'] = 'https://graph.facebook.com/' . $me['id'] . '/picture?type=square';
         return $response;
@@ -103,11 +103,11 @@ class Facebook extends AbstractStrategy
     {
         $params = array(
             'redirect_uri' => $this->callbackUrl(),
-            'code' => trim($_GET['code'])
+            'code' => trim($_GET['code']),
         );
         $strategyKeys = array(
             'app_id' => 'client_id',
-            'app_secret' => 'client_secret'
+            'app_secret' => 'client_secret',
         );
         return $this->addParams($strategyKeys, $params);
     }
@@ -137,7 +137,12 @@ class Facebook extends AbstractStrategy
      */
     protected function me($access_token)
     {
-        $me = $this->http->get('https://graph.facebook.com/me', array('access_token' => $access_token));
+        $fields = 'id,email,first_name,gender,last_name,link,locale,name,timezone,updated_time,verified'; //default value
+        if (isset($this->strategy['fields'])) {
+            $fields = $this->strategy['fields'];
+        }
+
+        $me = $this->http->get('https://graph.facebook.com/v2.8/me', array('access_token' => $access_token, 'fields' => $fields));
         if (empty($me)) {
             return false;
         }
