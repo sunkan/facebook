@@ -46,7 +46,7 @@ class Facebook extends AbstractStrategy
      */
     public function request()
     {
-        $url = 'https://www.facebook.com/2.8/dialog/oauth';
+        $url = 'https://www.facebook.com/dialog/oauth';
         $strategyKeys = array(
             'scope',
             'state',
